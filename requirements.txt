@@ -1,2 +1,5 @@
 requests
 tabulate
+pandas
+datasets # Added for Hugging Face datasets
+pyarrow # Often a good idea with datasets, though not always strictly required initially

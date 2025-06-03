@@ -1,7 +1,7 @@
 # ollama_eval_project/main.py
 import ollama_client
 from evaluator import run_evaluation
-from utils.presentation import print_results_table
+from utils.presentation import print_results_table, save_results_to_html
 
 # Import benchmark classes
 from benchmarks.example_benchmark import ExampleBenchmark
@@ -64,6 +64,8 @@ def main():
     # 3. Present the results
     if results:
         print_results_table(results)
+        html_output_filename = "evaluation_results.html"
+        save_results_to_html(results, html_output_filename)
     else:
         print("\nEvaluation completed, but no results were generated.")
         print("This might be due to errors, no models/benchmarks, or issues with questions.")

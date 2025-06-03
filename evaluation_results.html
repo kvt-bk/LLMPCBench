@@ -1,0 +1,68 @@
+
+<html>
+<head>
+    <title>LLM Evaluation Results</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { text-align: center; color: #333; }
+        table { 
+            border-collapse: collapse; 
+            width: 90%; 
+            margin: 20px auto; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            text-align: left; 
+            padding: 10px; 
+        }
+        th { 
+            background-color: #4CAF50; 
+            color: white; 
+            font-weight: bold;
+        }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        tr:hover { background-color: #ddd; }
+        .na-value { color: #999; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>LLM Evaluation Results</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Model</th>
+                <th>Simple QA Score (%)</th>
+                <th>Simple QA (Tokens/s)</th>
+            </tr>
+        </thead>
+        <tbody>
+                        <tr>
+                <td>deepseek-r1:8b</td>
+                <td class="">100.00</td>
+                <td class="">77.12</td>
+            </tr>
+            <tr>
+                <td>hf.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF:IQ2_S</td>
+                <td class="">100.00</td>
+                <td class="">129.26</td>
+            </tr>
+            <tr>
+                <td>llama3:8b</td>
+                <td class="">66.67</td>
+                <td class="">79.03</td>
+            </tr>
+            <tr>
+                <td>qwen3:14b</td>
+                <td class="">66.67</td>
+                <td class="">32.29</td>
+            </tr>
+            <tr>
+                <td>qwen3:8b</td>
+                <td class="">100.00</td>
+                <td class="">79.00</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
