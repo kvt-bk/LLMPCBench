@@ -255,7 +255,7 @@ class MMLUProAdapter(BaseBenchmark):
         print(f"Total MMLU-Pro questions loaded: {len(loaded_questions)}")
         return loaded_questions
 
-    # get_questions, _extract_choice, and evaluate methods remain the same
+    
     def get_questions(self):
         if not self.questions:
             self.questions = self._load_data()
@@ -265,82 +265,37 @@ class MMLUProAdapter(BaseBenchmark):
         if not model_response:
             return None
         
-        # --- Preprocessing Step to Remove Reasoning Blocks ---
-        # Remove <think>...</think> blocks (case-insensitive, multiline)
-        # The re.DOTALL flag makes '.' match newlines as well.
-        # The re.IGNORECASE flag makes <think> match <Think>, <THINK>, etc.
+        # 1. Preprocessing: Remove <think>...</think> blocks (case-insensitive, multiline)
         processed_response = re.sub(r"<think>.*?</think>", "", model_response, flags=re.DOTALL | re.IGNORECASE)
-        
-        # It's also common for models to output just the answer after the thinking block.
-        # Sometimes there might be a final answer marker like </answer_final> or similar.
-        # For now, we focus on removing the <think> blocks.
-        # You might also want to strip leading/trailing whitespace from the processed_response.
-        processed_response = processed_response.strip()
-        # --- End Preprocessing Step ---
+        processed_response = processed_response.strip() # Remove leading/trailing whitespace
 
-        # Now, use the processed_response for extraction
-        response = processed_response # Use the cleaned response from here on
-
-        if not response: # If the response was ONLY a think block
+        if not processed_response: # If the response was ONLY a think block or became empty
             return None
 
-        valid_choice_chars = "ABCDEFGHIJ"
-        patterns = [
-            # Case 1: Explicit statements with choice in parentheses
-            # Examples: "The final answer is (A)", "Answer: (B)"
-            rf"final answer is\s*:?\s*\(([{valid_choice_chars}])\)",
-            rf"The final answer is\s*:?\s*\(([{valid_choice_chars}])\)",
-            rf"Answer\s*:?\s*\(([{valid_choice_chars}])\)",
-            rf"The correct option is\s*:?\s*\(([{valid_choice_chars}])\)",
-            rf"The correct answer is\s*:?\s*\(([{valid_choice_chars}])\)", # E.g., "The correct answer is (A)"
-            rf"The correct choice is\s*:?\s*\(([{valid_choice_chars}])\)",
-
-            # Case 2: Explicit statements with choice NOT in parentheses (NEW)
-            # Examples: "The final answer is A.", "The correct answer is B"
-            rf"final answer is\s*:?\s*([{valid_choice_chars}])(?:[.\s]|$)",
-            rf"The final answer is\s*:?\s*([{valid_choice_chars}])(?:[.\s]|$)",
-            rf"Answer\s*:?\s*([{valid_choice_chars}])(?:[.\s]|$)",
-            rf"The correct option is\s*:?\s*([{valid_choice_chars}])(?:[.\s]|$)",
-            rf"The correct answer is\s*:?\s*([{valid_choice_chars}])(?:[.\s]|$)", # E.g., "The correct answer is A." or "The correct answer is A "
-            rf"The correct choice is\s*:?\s*([{valid_choice_chars}])(?:[.\s]|$)",
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                return match.group(1).upper()
+        # 2. Extraction logic inspired by chigkim/Ollama-MMLU-Pro's run_openai.py
         
-        # Case 3: Just the letter in parentheses "(A)"
-        match = re.search(rf"\(([{valid_choice_chars}])\)", response)
+        # Pattern 1: Match explicit statements of the answer.
+        # Examples: "the correct answer is (A)", "The answer is A", "The correct option is B"
+        # This pattern looks for "correct", "answer", or "option", followed by "is" or "was" (with optional colon),
+        # then an optional parenthesis, the choice letter (A-J), and an optional closing parenthesis.
+        match = re.search(
+            r"(?:correct|answer|option)\s+(?:is|was)\s*:?\s*\(?([A-J])\)?", 
+            processed_response, 
+            re.IGNORECASE
+        )
         if match:
             return match.group(1).upper()
-        
-        
-        # Case 4: Letter followed by a period or parenthesis, often at the start of a line or response
-        # Examples: "A.", "B)", " C." (note: initial space handled by strip)
-        # We look for it potentially being the first thing, or first after some initial non-alphanumeric preamble.
-        # This is more general.
-        match = re.search(rf"^([{valid_choice_chars}])(?:[.)\s])", response)
+
+        # Pattern 2: Match if the response starts with a letter (A-J), 
+        # possibly followed by a delimiter like '.', ')', or whitespace, or end of string.
+        # re.match anchors at the beginning of the string.
+        # \s* allows for leading whitespace even after initial strip, though less likely.
+        # (?:[.)\s]|$) means it's followed by '.', ')', whitespace, or it's the end of the string.
+        match = re.match(r"\s*([A-J])(?:[.)\s]|$)", processed_response)
         if match:
             return match.group(1).upper()
-        
-        # Case 5: If the response is just a single letter A-J.
-        if len(response) == 1 and response.upper() in valid_choice_chars:
-            return response.upper()
-        
-        # Case 6: Fallback: Check the very start of the response for a letter that is
-        # directly followed by a space, or is the only character.
-        # Avoids capturing 'A' from "An apple..."
-        
-        first_char = response[:1].upper()
-        if first_char in valid_choice_chars:
-            if len(response) > 1:
-                second_char = response[1:2]
-                if not second_char.isalpha():
-                    return first_char
-            else:
-                return first_char
-        return None
+            
+        return None # If no choice is extracted by the above patterns
 
     def evaluate(self, model_response: str, question_data: dict) -> (float | None):
         extracted_choice = self._extract_choice(model_response)
