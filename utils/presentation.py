@@ -1,7 +1,9 @@
 # ollama_eval_project/utils/presentation.py
 import os
+import logging
 from datetime import datetime
 from tabulate import tabulate
+logger = logging.getLogger(__name__)
 
 HTML_BASE_TEMPLATE = """
 <html>
@@ -53,7 +55,7 @@ RUN_TEMPLATE = """
 def print_results_table(results_data):
     """Prints evaluation results in a formatted console table."""
     if not results_data:
-        print("No results to display.")
+        logging.warning("No results to display.")
         return
 
     # All entries in a single run should have the same static info
@@ -62,8 +64,8 @@ def print_results_table(results_data):
     gpu_models = static_info.get('gpu_models', 'N/A')
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"\n--- Console Evaluation Results ({current_time}) ---")
-    print(f"CPU: {cpu_model} | GPU: {gpu_models}")
+    logging.info(f"\n--- Console Evaluation Results ({current_time}) ---")
+    logging.info(f"CPU: {cpu_model} | GPU: {gpu_models}")
 
     headers = [
         "Model", "Benchmark", "Score (%)", "Tokens/s", "Avg CPU %", 
@@ -84,13 +86,13 @@ def print_results_table(results_data):
         ]
         table_data.append(row)
 
-    print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    logging.info(tabulate(table_data, headers=headers, tablefmt="grid"))
 
 
 def save_results_to_html(results_data, output_filename="evaluation_results.html"):
     """Saves evaluation results to an HTML file, appending new results."""
     if not results_data:
-        print("No results were generated, skipping HTML save.")
+        logging.info("No results were generated, skipping HTML save.")
         return
 
     # 1. Gather static info (should be same for all results in this run)
@@ -151,6 +153,6 @@ def save_results_to_html(results_data, output_filename="evaluation_results.html"
     try:
         with open(output_filename, 'w', encoding='utf-8') as f:
             f.write(final_html)
-        print(f"\nResults successfully saved to {output_filename}")
+        logging.info(f"\nResults successfully saved to {output_filename}")
     except IOError as e:
-        print(f"Error writing HTML file {output_filename}: {e}")
+        logging.info(f"Error writing HTML file {output_filename}: {e}")

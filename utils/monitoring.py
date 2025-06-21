@@ -2,6 +2,9 @@ import threading
 import time
 import psutil
 import cpuinfo
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Wrap NVML import in a try-except block to make it optional
 try:
@@ -91,7 +94,7 @@ class SystemMonitor:
         self.results = []
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._thread.start()
-        print("    System monitor started.")
+        logging.info("System monitor started.")
 
     def stop(self):
         """Stops the monitoring thread and returns processed results."""
@@ -100,7 +103,7 @@ class SystemMonitor:
         self.is_running = False
         self._thread.join()
         self._thread = None
-        print("    System monitor stopped.")
+        logging.info("System monitor stopped.")
         return self._process_results()
 
     def _process_results(self):

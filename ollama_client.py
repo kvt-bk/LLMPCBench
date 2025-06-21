@@ -1,7 +1,9 @@
 import requests
 import json
 import time
+import logging
 
+logger = logging.getLogger(__name__)
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
 
 def get_ollama_response(model_name: str, prompt: str):
@@ -27,7 +29,7 @@ def get_ollama_response(model_name: str, prompt: str):
         }
         response = requests.post(OLLAMA_API_URL, json=payload, timeout=300) # Increased timeout
         response.raise_for_status()  # Raise an exception for HTTP errors
-
+        logger.debug(f"Ollama API Response: {response.text}")
         response_data = response.json()
         generated_text = response_data.get("response", "").strip()
 
@@ -45,10 +47,13 @@ def get_ollama_response(model_name: str, prompt: str):
         return generated_text, tokens_per_second, None
 
     except requests.exceptions.RequestException as e:
+        logger.error(f"Ollama API request failed: {e}")
         return None, None, f"API request failed: {e}"
     except json.JSONDecodeError:
+        logger.error("Failed to decode Ollama API response.")
         return None, None, "Failed to decode API response."
     except Exception as e:
+        logger.error(f"An unexpected error occurred in get_ollama_response: {e}")
         return None, None, f"An unexpected error occurred: {e}"
 
 def list_ollama_models():
@@ -62,34 +67,35 @@ def list_ollama_models():
         models_data = response.json()
         return [model['name'] for model in models_data.get('models', [])], None
     except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch models: {e}")
         return [], f"Failed to fetch models: {e}"
     except Exception as e:
         return [], f"An unexpected error occurred while fetching models: {e}"
 
 if __name__ == '__main__':
     # Test the client
-    print("Available Ollama models:")
+    logger.info("Available Ollama models:")
     models, error = list_ollama_models()
     if error:
-        print(f"Error: {error}")
+        logger.error(f"Error: {error}")
     elif models:
         for model in models:
-            print(f"- {model}")
+            logger.info(f"- {model}")
         
         # Test generation with the first available model if any
         if models:
             test_model = models[0] # Use the first model found
-            print(f"\nTesting generation with model: {test_model}")
+            logger.info(f"\nTesting generation with model: {test_model}")
             prompt = "Why is the sky blue?"
             text, tps, err = get_ollama_response(test_model, prompt)
             if err:
-                print(f"Error: {err}")
+                logger.error(f"Error: {err}")
             else:
-                print(f"Prompt: {prompt}")
-                print(f"Response: {text}")
+                logger.info(f"Prompt: {prompt}")
+                logger.info(f"Response: {text}")
                 if tps is not None:
-                    print(f"Performance: {tps:.2f} tokens/second")
+                    logger.info(f"Performance: {tps:.2f} tokens/second")
                 else:
-                    print("Performance metrics not available.")
+                    logger.warning("Performance metrics not available.")
     else:
-        print("No Ollama models found or Ollama is not running.")
+        logger.warning("No Ollama models found or Ollama is not running.")

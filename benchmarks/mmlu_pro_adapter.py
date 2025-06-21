@@ -3,6 +3,9 @@ from datasets import load_dataset
 import re
 import ast # For safely evaluating string representation of lists from CSVs (if ever used as fallback)
 import json
+import logging
+import math
+logger = logging.getLogger(__name__)
 
 class MMLUProAdapter(BaseBenchmark):
     HF_DATASET_NAME = "TIGER-Lab/MMLU-Pro"
@@ -19,20 +22,19 @@ class MMLUProAdapter(BaseBenchmark):
     def __init__(self,
                  subjects: list[str] | None = None,
                  data_split: str = "test",
-                 max_questions_per_subject: int | None = None):
+                 percentage_per_subject: float | None = None):
         super().__init__(f"MMLU-Pro ({data_split})")
+
 
         self.subjects_to_run_filter = subjects
         self.data_split = data_split
-        self.max_questions_per_subject = max_questions_per_subject
+        self.percentage_per_subject = percentage_per_subject
         self.questions = [] # Cache for loaded questions
 
         notice_msg = f"NOTICE: {self.name} adapter initialized for HF dataset ({self.HF_DATASET_NAME}, default config)."
         if self.subjects_to_run_filter:
             notice_msg += f" Will filter for specified subjects: {self.subjects_to_run_filter}."
-        if self.max_questions_per_subject is not None:
-            notice_msg += f" Max questions per subject: {self.max_questions_per_subject}."
-        print(notice_msg)
+        logging.info(notice_msg)
 
     def _format_prompt(self, subject: str, question_text: str, options: dict) -> str:
         """
@@ -52,23 +54,22 @@ class MMLUProAdapter(BaseBenchmark):
 
     def _load_data(self):
         loaded_questions = []
-        print(f"  Loading data for {self.HF_DATASET_NAME} (split: {self.data_split}, config: 'default')...")
+        logging.info(f"Loading data for {self.HF_DATASET_NAME} (split: {self.data_split}, config: 'default')...")
 
         try:
             # TIGER-Lab/MMLU-Pro uses a "default" configuration containing all subjects.
             full_dataset = load_dataset(self.HF_DATASET_NAME, name="default", split=self.data_split)
-            print(f"    Full dataset (default config, {self.data_split} split) loaded with {len(full_dataset)} items.")
+            logging.info(f"Full dataset (default config, {self.data_split} split) loaded with {len(full_dataset)} items.")
 
             if not full_dataset or len(full_dataset) == 0:
-                print(f"    ERROR: Dataset {self.HF_DATASET_NAME} (default/{self.data_split}) is empty or failed to load.")
+                logging.error(f"ERROR: Dataset {self.HF_DATASET_NAME} (default/{self.data_split}) is empty or failed to load.")
                 return []
 
-            # Group items by subject first to apply max_questions_per_subject correctly
             items_by_subject = {}
             for item in full_dataset:
                 subject_val = item.get(self.COL_CATEGORY)
                 if subject_val is None:
-                    print(f"    WARNING: Item missing category field ('{self.COL_CATEGORY}'). Item: {str(item)[:100]}")
+                    logging.warning(f"WARNING: Item missing category field ('{self.COL_CATEGORY}'). Item: {str(item)[:100]}")
                     subject_val = "unknown_subject" # Group items without a category
 
                 # Apply subject filtering if specified by the user
@@ -80,16 +81,25 @@ class MMLUProAdapter(BaseBenchmark):
                 items_by_subject[subject_val].append(item)
             
             if self.subjects_to_run_filter:
-                print(f"    Filtered down to {len(items_by_subject)} subjects based on input filter.")
+                logging.info(f"Filtered down to {len(items_by_subject)} subjects based on input filter.")
 
 
             for subject_name, items_in_subject in items_by_subject.items():
                 current_subject_items_to_load = items_in_subject
-                if self.max_questions_per_subject is not None and len(items_in_subject) > self.max_questions_per_subject:
-                    print(f"      Limiting to {self.max_questions_per_subject} questions for subject '{subject_name}'.")
-                    current_subject_items_to_load = items_in_subject[:self.max_questions_per_subject]
+                
+                num_questions_total = len(items_in_subject)
 
-                print(f"    Processing {len(current_subject_items_to_load)} questions for subject '{subject_name}'...")
+                if self.percentage_per_subject is not None:
+                    percentage = max(0.0, min(100.0, self.percentage_per_subject))
+                    num_to_take = math.ceil(num_questions_total * (percentage / 100.0))
+                    logger.info(f"Limiting to {percentage}% ({num_to_take} of {num_questions_total}) questions for subject '{subject_name}'.")
+                    current_subject_items_to_load = items_in_subject[:num_to_take]
+                else:
+                    logger.info(f"No percentage Limit set, Loading all {num_questions_total} questions for subject '{subject_name}'.")
+                    percentage_per_subject = 100.0
+                # <<< END: Updated logic >>>
+
+                logging.debug(f"Processing {len(current_subject_items_to_load)} questions for subject '{subject_name}'...")
                 for item_idx, item in enumerate(current_subject_items_to_load):
                     options_dict = {}
                     choices_list_from_item = item.get(self.COL_CHOICES_LIST)
@@ -112,11 +122,11 @@ class MMLUProAdapter(BaseBenchmark):
                                     if i < 10: option_letter = chr(ord('A') + i); options_dict[option_letter] = str(choice_text)
                                     else: break
                             else:
-                                print(f"      WARNING: Parsed '{self.COL_CHOICES_LIST}' is not a list for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
+                                logging.warning(f"Parsed '{self.COL_CHOICES_LIST}' is not a list for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
                         except (ValueError, SyntaxError):
-                             print(f"      WARNING: Could not parse string choices_list for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
+                             logging.error(f"Could not parse string choices_list for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
                     else:
-                        print(f"      WARNING: Choices list ('{self.COL_CHOICES_LIST}') is not a list or parsable string for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}. Options will be empty.")
+                        logging.warning(f"Choices list ('{self.COL_CHOICES_LIST}') is not a list or parsable string for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}. Options will be empty.")
 
                     # Ensure all A-J keys exist, defaulting to None if not populated from choices_list
                     for i in range(10): # A-J
@@ -141,11 +151,11 @@ class MMLUProAdapter(BaseBenchmark):
                             if isinstance(choices_list_from_item, list) and 0 <= ans_idx < len(choices_list_from_item) and ans_idx < 10:
                                 correct_answer_char = chr(ord('A') + ans_idx)
                             else:
-                                print(f"      WARNING: Answer index {ans_idx} out of bounds or choices list not available for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
+                                logging.warning(f"Answer index {ans_idx} out of bounds or choices list not available for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
                         except ValueError:
-                            print(f"      WARNING: Answer index '{answer_index_from_item}' is not a valid integer for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
+                            logging.error(f"Answer index '{answer_index_from_item}' is not a valid integer for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
                     else:
-                        print(f"      WARNING: No answer letter or index found for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
+                        logging.warning(f"No answer letter or index found for item {item.get(self.COL_QUESTION_ID, item_idx)} in {subject_name}.")
 
 
                     question_id_val = str(item.get(self.COL_QUESTION_ID, f"genid_{item_idx}"))
@@ -161,11 +171,11 @@ class MMLUProAdapter(BaseBenchmark):
                     loaded_questions.append(question_data)
 
         except Exception as e:
-            print(f"  ERROR: Major failure during MMLU-Pro data loading or processing: {e}")
+            logging.error(f"Major failure during MMLU-Pro data loading or processing: {e}")
             import traceback
             traceback.print_exc() # Print full traceback for better debugging
 
-        print(f"Total MMLU-Pro questions loaded: {len(loaded_questions)}")
+        logging.info(f"Total MMLU-Pro questions loaded: {len(loaded_questions)}")
         return loaded_questions
 
     def get_questions(self):
@@ -196,7 +206,7 @@ class MMLUProAdapter(BaseBenchmark):
             
             if start_brace != -1 and end_brace != -1 and end_brace > start_brace:
                 json_str_candidate = processed_response[start_brace : end_brace + 1]
-                # print(f"DEBUG: JSON candidate string: '{json_str_candidate}'") # Uncomment for debugging
+                # logging.info(f"DEBUG: JSON candidate string: '{json_str_candidate}'") # Uncomment for debugging
                 parsed_json = json.loads(json_str_candidate)
                 if isinstance(parsed_json, dict):
                     value = None
@@ -209,36 +219,36 @@ class MMLUProAdapter(BaseBenchmark):
                                 break
                     
                     if isinstance(value, str) and len(value) == 1 and 'A' <= value.upper() <= 'J':
-                        # print(f"DEBUG: Extracted '{value.upper()}' from JSON")
+                        # logging.info(f"DEBUG: Extracted '{value.upper()}' from JSON")
                         return value.upper()
             # else:
-                # print("DEBUG: No clear JSON object braces found in the response.")
+                # logging.info("DEBUG: No clear JSON object braces found in the response.")
                 
         except json.JSONDecodeError as e:
-            # print(f"DEBUG: JSONDecodeError: {e}. Candidate: '{json_str_candidate if json_str_candidate else 'N/A'}'")
+            # logging.info(f"DEBUG: JSONDecodeError: {e}. Candidate: '{json_str_candidate if json_str_candidate else 'N/A'}'")
             pass 
         except Exception as e_gen: 
-            # print(f"DEBUG: Unexpected error during JSON processing: {e_gen}")
+            # logging.info(f"DEBUG: Unexpected error during JSON processing: {e_gen}")
             pass
 
 
         # 3. Fallback Extraction: Use regex patterns
-        # print("DEBUG: JSON extraction failed or no valid answer found, trying regex fallback...")
+        # logging.info("DEBUG: JSON extraction failed or no valid answer found, trying regex fallback...")
         match = re.search(
             r"(?:correct|answer|option)\s+(?:is|was)\s*:?\s*\(?([A-J])\)?", 
             processed_response, 
             re.IGNORECASE
         )
         if match:
-            # print(f"DEBUG: Extracted '{match.group(1).upper()}' using regex pattern 1")
+            # logging.info(f"DEBUG: Extracted '{match.group(1).upper()}' using regex pattern 1")
             return match.group(1).upper()
 
         match = re.match(r"\s*([A-J])(?:[.)\s]|$)", processed_response)
         if match:
-            # print(f"DEBUG: Extracted '{match.group(1).upper()}' using regex pattern 2")
+            # logging.info(f"DEBUG: Extracted '{match.group(1).upper()}' using regex pattern 2")
             return match.group(1).upper()
             
-        # print(f"DEBUG: No choice extracted for response: '{processed_response[:100]}...'")
+        # logging.info(f"DEBUG: No choice extracted for response: '{processed_response[:100]}...'")
         return None
 
     def evaluate(self, model_response: str, question_data: dict) -> (float | None):
@@ -247,8 +257,8 @@ class MMLUProAdapter(BaseBenchmark):
 
         # Minimal debug for incorrect/failed extractions if needed
         # if extracted_choice != correct_answer or correct_answer == "INVALID_ANSWER":
-        #     print(f"Debug Eval: ID={question_data['id']}, Expected='{correct_answer}', Got='{extracted_choice}', Response='{model_response[:70]}...'")
-        print(f"Evaluating question {question_data['id']}: Expected '{correct_answer}', Got '{extracted_choice}'")
+        #     logging.info(f"Debug Eval: ID={question_data['id']}, Expected='{correct_answer}', Got='{extracted_choice}', Response='{model_response[:70]}...'")
+        logging.info(f"Evaluating question {question_data['id']}: Expected '{correct_answer}', Got '{extracted_choice}'")
         if correct_answer == "INVALID_ANSWER": return 0.0
         if extracted_choice is None: return 0.0
         if extracted_choice == correct_answer: return 1.0
