@@ -248,7 +248,7 @@ class MMLUProAdapter(BaseBenchmark):
         # Minimal debug for incorrect/failed extractions if needed
         # if extracted_choice != correct_answer or correct_answer == "INVALID_ANSWER":
         #     print(f"Debug Eval: ID={question_data['id']}, Expected='{correct_answer}', Got='{extracted_choice}', Response='{model_response[:70]}...'")
-
+        print(f"Evaluating question {question_data['id']}: Expected '{correct_answer}', Got '{extracted_choice}'")
         if correct_answer == "INVALID_ANSWER": return 0.0
         if extracted_choice is None: return 0.0
         if extracted_choice == correct_answer: return 1.0

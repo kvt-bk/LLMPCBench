@@ -26,7 +26,7 @@ MMLU_PRO_DATA_SPLIT = "test" # Can be "test", "validation", or "dev"
 
 # New: Set the maximum number of questions per MMLU-Pro subject
 # Set to None to load all questions for the selected subjects.
-MMLU_PRO_MAX_QUESTIONS_PER_SUBJECT = 10 # Example: Load only the first 10 questions per subject
+MMLU_PRO_MAX_QUESTIONS_PER_SUBJECT = 1 # Example: Load only the first 10 questions per subject
 # MMLU_PRO_MAX_QUESTIONS_PER_SUBJECT = None # To load all
 # --- End MMLU-Pro Configuration ---
 

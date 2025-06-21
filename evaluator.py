@@ -2,6 +2,7 @@
 import time
 from ollama_client import get_ollama_response
 from benchmarks.base_benchmark import BaseBenchmark
+from utils.monitoring import SystemMonitor # Import the new monitor
 
 def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchmark]):
     """
@@ -33,7 +34,11 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
             print(f"    No questions found for benchmark {benchmark_name}. Skipping.")
             continue
         for model_name in models_to_test:
-            print(f"\n--- Evaluating Model: {model_name} ---")
+            print(f"\n--- Evaluating Model: {model_name} on {benchmark_name} ---")
+            # <<< START monitor >>>
+            monitor = SystemMonitor(interval=1)
+            monitor.start()
+            
             total_score = 0
             num_questions = len(questions)
             successful_evals = 0
@@ -47,9 +52,10 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
                     num_questions -=1 # Adjust count of valid questions
                     continue
 
-                print(f"    Querying model for question {i+1}/{len(questions)}...")
-                print("Prompt is "+prompt)
+                print(f"Querying model for question {i+1}/{len(questions)}...")
+                print("Prompt : "+prompt)
                 response_text, tps, error = get_ollama_response(model_name, prompt)
+                print(f"Response received for question {response_text}.")
 
                 if error:
                     print(f"      Error getting response for question {q_data.get('id', i+1)}: {error}")
@@ -66,27 +72,39 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
                 if question_score is not None:
                     total_score += question_score
                     successful_evals += 1
-                    print(f"      Question {q_data.get('id', i+1)} - Score: {question_score:.2f}" + (f", TPS: {tps:.2f}" if tps else ""))
+                    print(f"Question {q_data.get('id', i+1)} - Score: {question_score:.2f}" + (f", TPS: {tps:.2f}" if tps else "")+"\n")
                 else:
                     print(f"      Question {q_data.get('id', i+1)} - Could not be evaluated.")
                     # num_questions -=1 # If unevaluable questions shouldn't count towards the average
 
+            monitoring_results = monitor.stop() # End monitoring
             avg_score_percent = (total_score / successful_evals) * 100 if successful_evals > 0 else 0.0
             avg_tps = sum(all_tps) / len(all_tps) if all_tps else None
 
-            print(f"  Benchmark {benchmark_name} Summary for {model_name}:")
+            result_entry = { 
+                "model": model_name, 
+                "benchmark": benchmark_name, 
+                "score": avg_score_percent, 
+                "avg_tokens_s": avg_tps, 
+                "static_info": monitor.static_info,
+            }
+            result_entry.update(monitoring_results) 
+            all_results.append(result_entry) 
+
+            print(f"Summary for {model_name} on Benchmark {benchmark_name} :")
             print(f"    Average Score: {avg_score_percent:.2f}% (over {successful_evals} evaluated questions)")
             if avg_tps is not None:
                 print(f"    Average Tokens/Second: {avg_tps:.2f}")
             else:
                 print(f"    Average Tokens/Second: N/A")
+            
+            if monitoring_results:
+                print(" System Usage (Avg):")
+                print(f"    CPU: {monitoring_results.get('avg_cpu_percent', 0):.2f}% | RAM: {monitoring_results.get('avg_ram_percent', 0):.2f}%")
+                if 'avg_gpu_util_percent' in monitoring_results:
+                     print(f"   GPU Util: {monitoring_results.get('avg_gpu_util_percent', 0):.2f}% | GPU Mem: {monitoring_results.get('avg_gpu_mem_percent', 0):.2f}%")
+                     print(f"   Total GPU Energy: {monitoring_results.get('total_gpu_energy_wh', 0):.6f} Wh")
 
-            all_results.append({
-                "model": model_name,
-                "benchmark": benchmark_name,
-                "score": avg_score_percent if successful_evals > 0 else None, # Use None if no questions could be scored
-                "avg_tokens_s": avg_tps
-            })
-            time.sleep(1) # Small delay between benchmarks
+            time.sleep(5) # Small delay between benchmarks
 
     return all_results
