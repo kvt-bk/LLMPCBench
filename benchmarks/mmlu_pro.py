@@ -194,61 +194,45 @@ class MMLUPro(BaseBenchmark):
         if not processed_response:
             return None
 
-        # 2. Primary Extraction: Attempt to parse JSON
-        #    We expect something like {"Answer": "X"}
-        
-        # Try to find the first '{' and last '}'
-        # This is a common heuristic if the JSON is the primary structured output.
-        json_str_candidate = None # Define for use in except block
+        # 2. Primary Extraction: Attempt to parse as a complete, valid JSON object. We expect something like {"Answer": "X"}
         try:
             start_brace = processed_response.find('{')
             end_brace = processed_response.rfind('}')
             
             if start_brace != -1 and end_brace != -1 and end_brace > start_brace:
                 json_str_candidate = processed_response[start_brace : end_brace + 1]
-                # logging.info(f"DEBUG: JSON candidate string: '{json_str_candidate}'") # Uncomment for debugging
                 parsed_json = json.loads(json_str_candidate)
                 if isinstance(parsed_json, dict):
-                    value = None
-                    if "Answer" in parsed_json: # Exact key match first
-                        value = parsed_json["Answer"]
-                    else: # Case-insensitive fallback for the key "Answer"
-                        for k_json in parsed_json.keys():
-                            if k_json.lower() == "answer":
-                                value = parsed_json[k_json]
-                                break
-                    
-                    if isinstance(value, str) and len(value) == 1 and 'A' <= value.upper() <= 'J':
-                        # logging.info(f"DEBUG: Extracted '{value.upper()}' from JSON")
-                        return value.upper()
-            # else:
-                # logging.info("DEBUG: No clear JSON object braces found in the response.")
-                
-        except json.JSONDecodeError as e:
-            # logging.info(f"DEBUG: JSONDecodeError: {e}. Candidate: '{json_str_candidate if json_str_candidate else 'N/A'}'")
-            pass 
-        except Exception as e_gen: 
-            # logging.info(f"DEBUG: Unexpected error during JSON processing: {e_gen}")
+                    # Look for "Answer" or "answer" key
+                    for key, value in parsed_json.items():
+                        if key.lower() == "answer":
+                            if isinstance(value, str) and len(value) == 1 and 'A' <= value.upper() <= 'J':
+                                return value.upper()
+                            break # Found the key, no need to check others
+        except (json.JSONDecodeError, Exception):
+            # If JSON parsing fails, pass silently to the next fallback method.
+            logger.debug("Full JSON parsing failed, attempting fallback methods.Attempted reponse: {processed_response}")
             pass
-
-
-        # 3. Fallback Extraction: Use regex patterns
-        # logging.info("DEBUG: JSON extraction failed or no valid answer found, trying regex fallback...")
-        match = re.search(
-            r"(?:correct|answer|option)\s+(?:is|was)\s*:?\s*\(?([A-J])\)?", 
-            processed_response, 
-            re.IGNORECASE
-        )
+        
+        # 3. Fallback A: Targeted regex for malformed/incomplete JSON.
+        # This looks specifically for the "Answer": "X" pattern.
+        match = re.search(r'["\']Answer["\']\s*:\s*["\']([A-J])["\']', processed_response, re.IGNORECASE)
         if match:
-            # logging.info(f"DEBUG: Extracted '{match.group(1).upper()}' using regex pattern 1")
+            logger.debug(f"Extracted '{match.group(1).upper()}' using targeted JSON regex fallback.")
+            return match.group(1).upper()
+
+        # 4. Fallback B: Regex for natural language answers
+        match = re.search(r"(?:correct|answer|option)\s+(?:is|was)\s*:?\s*\(?([A-J])\)?", processed_response, re.IGNORECASE)
+        if match:
+            logger.debug(f"Extracted '{match.group(1).upper()}' using natural language regex.")
             return match.group(1).upper()
 
         match = re.match(r"\s*([A-J])(?:[.)\s]|$)", processed_response)
         if match:
-            # logging.info(f"DEBUG: Extracted '{match.group(1).upper()}' using regex pattern 2")
+            logger.debug(f"Extracted '{match.group(1).upper()}' using start-of-string choice regex.")
             return match.group(1).upper()
             
-        # logging.info(f"DEBUG: No choice extracted for response: '{processed_response[:100]}...'")
+        logger.warning(f"Could not extract a valid choice from response: '{processed_response[:100]}...'")
         return None
 
     def evaluate(self, model_response: str, question_data: dict) -> (float | None):
