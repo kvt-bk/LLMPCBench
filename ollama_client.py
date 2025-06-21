@@ -21,7 +21,9 @@ def get_ollama_response(model_name: str, prompt: str):
         payload = {
             "model": model_name,
             "prompt": prompt,
-            "stream": False  # Set to False to get the full response at once
+            "stream": False,  # Set to False to get the full response at once
+            "format": "json",  # Request JSON response
+            "system": "you are a helpful assistant. You are given a multiple choice questions (with answers). Think step by step and then finish your answer with The answer is (X) where X is the correct letter choice."
         }
         response = requests.post(OLLAMA_API_URL, json=payload, timeout=300) # Increased timeout
         response.raise_for_status()  # Raise an exception for HTTP errors

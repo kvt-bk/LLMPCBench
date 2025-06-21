@@ -25,17 +25,15 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
         print("No benchmarks specified for evaluation.")
         return []
 
-    for model_name in models_to_test:
-        print(f"\n--- Evaluating Model: {model_name} ---")
-        for benchmark in benchmarks_to_run:
-            benchmark_name = benchmark.get_name()
-            print(f"  Running Benchmark: {benchmark_name}...")
-            
-            questions = benchmark.get_questions()
-            if not questions:
-                print(f"    No questions found for benchmark {benchmark_name}. Skipping.")
-                continue
-
+    for benchmark in benchmarks_to_run:
+        benchmark_name = benchmark.get_name()
+        print(f"  Running Benchmark: {benchmark_name}...")
+        questions = benchmark.get_questions()
+        if not questions:
+            print(f"    No questions found for benchmark {benchmark_name}. Skipping.")
+            continue
+        for model_name in models_to_test:
+            print(f"\n--- Evaluating Model: {model_name} ---")
             total_score = 0
             num_questions = len(questions)
             successful_evals = 0
@@ -50,6 +48,7 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
                     continue
 
                 print(f"    Querying model for question {i+1}/{len(questions)}...")
+                print("Prompt is "+prompt)
                 response_text, tps, error = get_ollama_response(model_name, prompt)
 
                 if error:

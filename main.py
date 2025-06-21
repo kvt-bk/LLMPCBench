@@ -5,7 +5,7 @@ from utils.presentation import print_results_table, save_results_to_html
 
 # Import benchmark classes
 from benchmarks.example_benchmark import ExampleBenchmark
-from benchmarks.mmlu_pro_adapter import MMLUProAdapter # Ensure this is imported
+from benchmarks.mmlu_pro_adapter import MMLUProAdapter 
 from benchmarks.hle_adapter import HLEAdapter
 from benchmarks.math_500_adapter import Math500Adapter
 from benchmarks.live_code_bench_adapter import LiveCodeBenchAdapter
@@ -30,32 +30,9 @@ MMLU_PRO_MAX_QUESTIONS_PER_SUBJECT = 10 # Example: Load only the first 10 questi
 # MMLU_PRO_MAX_QUESTIONS_PER_SUBJECT = None # To load all
 # --- End MMLU-Pro Configuration ---
 
-# --- End MMLU-Pro Configuration ---
-
-
-def main():
-    print("Starting LLM Evaluation Project...")
-
-    # ... (Ollama model discovery logic) ...
-    print("\nChecking available Ollama models...")
-    available_models, error = ollama_client.list_ollama_models()
-    if error:
-        print(f"Error fetching Ollama models: {error}")
-        return
-    if not available_models:
-        print("No local Ollama models found.")
-        return
-    print("Available models:", ", ".join(available_models))
-
-    models_to_evaluate = ["llama3:8b", "hf.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF:IQ2_S","qwen3:14b","deepseek-r1:8b","qwen3:8b"] # Or select a subset
-    # models_to_evaluate = ["llama3:latest"] # For faster testing
-
-    if not models_to_evaluate:
-        print("No models selected or available for evaluation.")
-        return
-
-    # Instantiate the benchmarks
-    benchmarks = [
+models_to_evaluate = ["hf.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF:IQ2_S","qwen3:14b","deepseek-r1:8b","qwen3:8b","llama3:8b"]
+# Instantiate the benchmarks
+benchmarks = [
         #ExampleBenchmark(),
         # Initialize MMLUProAdapter (no data_dir needed now)
         MMLUProAdapter(subjects=MMLU_PRO_SUBJECTS_TO_RUN, 
@@ -65,6 +42,14 @@ def main():
         #Math500Adapter(),
         #LiveCodeBenchAdapter()
     ]
+# --- End of Configuration ---
+
+def main():
+    print("Starting LLM Evaluation...")
+
+    if not models_to_evaluate:
+        print("No models selected or available for evaluation.")
+        return
 
     print(f"\nSelected models for evaluation: {', '.join(models_to_evaluate)}")
     print(f"Selected benchmarks: {', '.join([b.get_name() for b in benchmarks])}")

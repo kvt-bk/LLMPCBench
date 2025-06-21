@@ -1,4 +1,5 @@
 # ollama_eval_project/utils/presentation.py
+
 from tabulate import tabulate # We can keep this if you still want console output as an option
 
 HTML_TEMPLATE = """
