@@ -1,4 +1,30 @@
+# Byte-compiled / optimized / C extensions
 __pycache__/
-Include
-Lib
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env/
 Scripts
+
+# Distribution / packaging
+Lib
+
+# Local files
+.env
+.pylintrc
+
+# Log and result files
+*.log
+*.html
+
+# IDE and OS-specific
+.vscode/
+.idea/
+.DS_Store
+
+# Testing
+.pytest_cache/

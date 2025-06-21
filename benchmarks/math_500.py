@@ -1,5 +1,5 @@
 # ollama_eval_project/benchmarks/math_500_adapter.py
-from .base_benchmark import BaseBenchmark
+from benchmarks.base_benchmark import BaseBenchmark
 import re
 
 class Math500Adapter(BaseBenchmark):

@@ -32,7 +32,7 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
 
     for benchmark in benchmarks_to_run:
         benchmark_name = benchmark.get_name()
-        print(f"  Running Benchmark: {benchmark_name}...")
+        logger.info(f"Running Benchmark: {benchmark_name}...")
         questions = benchmark.get_questions()
         if not questions:
             logger.warning(f"    No questions found for benchmark {benchmark_name}. Skipping.")

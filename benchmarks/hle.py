@@ -1,5 +1,5 @@
 # ollama_eval_project/benchmarks/hle_adapter.py
-from .base_benchmark import BaseBenchmark
+from benchmarks.base_benchmark import BaseBenchmark
 
 class HLEAdapter(BaseBenchmark):
     def __init__(self):

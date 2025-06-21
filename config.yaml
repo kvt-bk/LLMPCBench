@@ -1,0 +1,38 @@
+# -----------------------------------------------------------------------------
+# Main Configuration for the LLM Evaluation Framework
+# -----------------------------------------------------------------------------
+
+# List of Ollama model tags to evaluate.
+# Example: ["llama3:8b", "qwen2:7b"]
+models_to_evaluate:
+  - "hf.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF:IQ2_S"
+  - "qwen3:14b"
+  - "deepseek-r1:8b"
+  - "qwen3:8b"
+  - "llama3:8b"
+
+# --- Benchmarks Configuration ---
+# Enable or disable benchmarks and set their specific parameters here.
+benchmarks:
+  # The MMLU-Pro benchmark from TIGER-Lab on Hugging Face.
+  MMLUPro:
+    enabled: true
+    data_split: "test" # Can be "test", "validation", or "dev"
+    percentage_per_subject: 1.0 # Use 1.0 for 1%, 100 for all. Set to null for all questions.
+    subjects: null # `null` for all subjects, or a list: ["moral_scenarios", "us_foreign_policy"]
+
+  # A simple factual QA benchmark for testing purposes.
+  ExampleBenchmark:
+    enabled: false
+
+# --- Reporters Configuration ---
+# Enable or disable different output formats for the results.
+reporters:
+  # Prints a summary table to the console.
+  ConsoleReporter:
+    enabled: true
+
+  # Appends a detailed report to an HTML file.
+  HTMLReporter:
+    enabled: true
+    output_file: "evaluation_results.html"

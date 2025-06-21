@@ -1,5 +1,5 @@
 # ollama_eval_project/benchmarks/live_code_bench_adapter.py
-from .base_benchmark import BaseBenchmark
+from benchmarks.base_benchmark import BaseBenchmark
 # For a real LiveCodeBench, you'd need a secure execution environment.
 # import subprocess
 # import tempfile

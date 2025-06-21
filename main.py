@@ -1,45 +1,19 @@
-import logging
+import os
 import sys
-import ollama_client
+import yaml
+import inspect
+import logging
+import argparse
+import importlib.util
+import re
+
+
 from evaluator import run_evaluation
-from utils.presentation import print_results_table, save_results_to_html
+from ollama_client import check_ollama_connection
+from benchmarks.base_benchmark import BaseBenchmark
+from reporters.base_reporter import BaseReporter
 
-# Import benchmark classes
-from benchmarks.example_benchmark import ExampleBenchmark
-from benchmarks.mmlu_pro_adapter import MMLUProAdapter 
-#from benchmarks.hle_adapter import HLEAdapter
-#from benchmarks.math_500_adapter import Math500Adapter
-#from benchmarks.live_code_bench_adapter import LiveCodeBenchAdapter
 
-# --- Configuration for MMLU-Pro ---
-# Specify a few subjects (Hugging Face configurations) to run for quicker testing, or None for all.
-# These should match the configuration names on Hugging Face for TIGER-Lab/MMLU-Pro.
-""" MMLU_PRO_SUBJECTS_TO_RUN = [
-    "professional_psychology", 
-    "moral_scenarios", 
-    "us_foreign_policy",
-    "abstract_algebra" # Example list
-]   """
-# Set to None to attempt loading all available subjects for MMLU-Pro
-MMLU_PRO_SUBJECTS_TO_RUN = None 
-MMLU_PRO_DATA_SPLIT = "test" # Can be "test", "validation", or "dev"
-# New: Set the maximum number of questions per MMLU-Pro subject
-MMLU_PRO_PERCENTAGE_PER_SUBJECT = 1.0 # Example: Load 1% of questions per subject for a quick test
-# --- End MMLU-Pro Configuration ---
-
-models_to_evaluate = ["hf.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF:IQ2_S","qwen3:14b","deepseek-r1:8b","qwen3:8b","llama3:8b"]
-# Instantiate the benchmarks
-benchmarks = [
-        #ExampleBenchmark(),
-        # Initialize MMLUProAdapter (no data_dir needed now)
-        MMLUProAdapter(subjects=MMLU_PRO_SUBJECTS_TO_RUN, 
-                       data_split=MMLU_PRO_DATA_SPLIT,
-                       percentage_per_subject=MMLU_PRO_PERCENTAGE_PER_SUBJECT)
-        #HLEAdapter(),
-        #Math500Adapter(),
-        #LiveCodeBenchAdapter()
-    ]
-# --- End of Configuration ---
 
 def setup_logging():
     """Configures logging to file and console."""
@@ -64,32 +38,81 @@ def setup_logging():
     console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
 
+def load_modules_from_path(path, base_class):
+    """Dynamically loads modules from a path and finds classes inheriting from a base class."""
+    loaded_classes = {}
+    for filename in os.listdir(path):
+        if filename.endswith('.py') and not filename.startswith('__'):
+            module_name = filename[:-3]
+            module_path = os.path.join(path, filename)
+            
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                for name, obj in inspect.getmembers(module, inspect.isclass):
+                    if issubclass(obj, base_class) and obj is not base_class:
+                       loaded_classes[name] = obj
+    return loaded_classes
+
 def main():
+    parser = argparse.ArgumentParser(description="A framework for benchmarking local LLMs via Ollama.")
+    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file.')
+    parser.add_argument('--models', nargs='+', help='Override models from config file. e.g., --models llama3:8b qwen2:7b')
+    args = parser.parse_args()
     setup_logging()
-    logging.info("Starting LLM Evaluation...")
 
+    if not check_ollama_connection():
+        sys.exit(1)
+    
+    try:
+        with open(args.config, 'r') as f:
+            config = yaml.safe_load(f)
+    except FileNotFoundError:
+        logging.error(f"Configuration file not found at {args.config}")
+        sys.exit(1)
+
+    # --- Load Models ---
+    models_to_evaluate = args.models if args.models else config.get('models_to_evaluate', [])
     if not models_to_evaluate:
-        logging.error("No models selected or available for evaluation.")
-        return
+        logging.error("No models specified in config or via CLI. Exiting.")
+        sys.exit(1)
 
-    logging.info(f"\nSelected models for evaluation: {', '.join(models_to_evaluate)}")
-    logging.info(f"Selected benchmarks: {', '.join([b.get_name() for b in benchmarks])}")
+    # --- Discover and Load Benchmarks ---
+    available_benchmarks = load_modules_from_path('benchmarks', BaseBenchmark)
+    benchmarks_to_run = []
+    for name, params in config.get('benchmarks', {}).items():
+        if params.get('enabled') and name in available_benchmarks:
+            cls = available_benchmarks[name]
+            # Pass only the relevant params to the constructor
+            instance_params = {k: v for k, v in params.items() if k != 'enabled'}
+            benchmarks_to_run.append(cls(**instance_params))
+            logging.info(f"Loaded benchmark: {name}")
 
-    # Run the evaluation
-    results = run_evaluation(models_to_evaluate, benchmarks)
+    # --- Discover and Load Reporters ---
+    available_reporters = load_modules_from_path('reporters', BaseReporter)
+    reporters_to_run = []
+    for name, params in config.get('reporters', {}).items():
+        if params.get('enabled') and name in available_reporters:
+            cls = available_reporters[name]
+            reporters_to_run.append(cls(params))
+            logging.info(f"Loaded reporter: {name}")
+    
+    # --- Run Evaluation ---
+    logging.info(f"Starting evaluation for models: {', '.join(models_to_evaluate)}")
+    results = run_evaluation(models_to_evaluate, benchmarks_to_run)
+
 
     # Present the results
+    # --- Report Results ---
     if results:
-        print_results_table(results) 
-        html_output_filename = "evaluation_results.html"
-        save_results_to_html(results, html_output_filename)
+        for reporter in reporters_to_run:
+            reporter.report(results)
     else:
-        logging.warning("\nEvaluation completed, but no results were generated.")
-        logging.warning("This might be due to errors, no models/benchmarks, or issues with questions.")
-        save_results_to_html([], "evaluation_results_empty.html")
+        logging.warning("Evaluation finished but produced no results.")
 
-    logging.info("\nLLM Evaluation Project finished.")
-    
+    logging.info("LLM Evaluation Project finished.")
+ 
 
 if __name__ == "__main__":
     main()

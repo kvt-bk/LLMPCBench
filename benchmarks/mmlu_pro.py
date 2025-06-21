@@ -1,4 +1,4 @@
-from .base_benchmark import BaseBenchmark
+from benchmarks.base_benchmark import BaseBenchmark
 from datasets import load_dataset
 import re
 import ast # For safely evaluating string representation of lists from CSVs (if ever used as fallback)
@@ -7,7 +7,7 @@ import logging
 import math
 logger = logging.getLogger(__name__)
 
-class MMLUProAdapter(BaseBenchmark):
+class MMLUPro(BaseBenchmark):
     HF_DATASET_NAME = "TIGER-Lab/MMLU-Pro"
 
     # Define known column names from TIGER-Lab/MMLU-Pro dataset on Hugging Face

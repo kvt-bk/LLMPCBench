@@ -1,10 +1,22 @@
 import requests
 import json
-import time
 import logging
 
 logger = logging.getLogger(__name__)
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
+OLLAMA_TAGS_URL = "http://localhost:11434/api/tags"
+
+def check_ollama_connection():
+    """Checks if the Ollama API is running and reachable."""
+    try:
+        response = requests.get("http://localhost:11434/", timeout=5)
+        response.raise_for_status()
+        logger.info("Ollama API connection successful.")
+        return True
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Ollama API is not reachable at http://localhost:11434. Please ensure Ollama is running.")
+        logger.error(f"Error details: {e}")
+        return False
 
 def get_ollama_response(model_name: str, prompt: str):
     """

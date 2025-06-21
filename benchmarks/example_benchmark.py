@@ -1,4 +1,4 @@
-from .base_benchmark import BaseBenchmark
+from benchmarks.base_benchmark import BaseBenchmark
 
 class ExampleBenchmark(BaseBenchmark):
     """
