@@ -1,68 +1,46 @@
 
 <html>
 <head>
-    <title>LLM Evaluation Results</title>
+    <title>LLM Evaluation Results Log</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { text-align: center; color: #333; }
-        table { 
-            border-collapse: collapse; 
-            width: 90%; 
-            margin: 20px auto; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        th, td { 
-            border: 1px solid #ddd; 
-            text-align: left; 
-            padding: 10px; 
-        }
-        th { 
-            background-color: #4CAF50; 
-            color: white; 
-            font-weight: bold;
-        }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        tr:hover { background-color: #ddd; }
-        .na-value { color: #999; font-style: italic; }
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 20px; background-color: #f8f9fa; }}
+        h1 {{ text-align: center; color: #343a40; }}
+        .run-container {{ 
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 30px; 
+            padding: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }}
+        .run-header h2 {{ margin-top: 0; color: #495057; }}
+        .run-header p {{ font-size: 0.9em; color: #6c757d; font-family: 'Courier New', Courier, monospace; }}
+        table {{ border-collapse: collapse; width: 100%; font-size: 0.9em; }}
+        th, td {{ border: 1px solid #e9ecef; text-align: left; padding: 10px; }}
+        th {{ background-color: #007bff; color: white; font-weight: bold; white-space: nowrap; }}
+        tr:nth-child(even) {{ background-color: #f2f2f2; }}
+        .na-value {{ color: #999; font-style: italic; }}
     </style>
 </head>
 <body>
-    <h1>LLM Evaluation Results</h1>
+    <h1>LLM Evaluation Results Log</h1>
+
+<div class="run-container">
+    <div class="run-header">
+        <h2>Evaluation Run: 2025-06-21 22:09:51</h2>
+        <p>CPU: 13th Gen Intel(R) Core(TM) i9-13900KF<br>GPU: NVIDIA GeForce RTX 4070 Ti</p>
+    </div>
     <table>
         <thead>
-            <tr>
-                <th>Model</th>
-                <th>Simple QA Score (%)</th>
-                <th>Simple QA (Tokens/s)</th>
-            </tr>
+            <tr><th>Model</th><th>Benchmark</th><th>Score (%)</th><th>Tokens/s</th><th>Avg CPU %</th><th>Avg RAM %</th><th>Avg GPU %</th><th>GPU Energy (Wh)</th></tr>
         </thead>
         <tbody>
-                        <tr>
-                <td>deepseek-r1:8b</td>
-                <td class="">100.00</td>
-                <td class="">77.12</td>
-            </tr>
-            <tr>
-                <td>hf.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF:IQ2_S</td>
-                <td class="">100.00</td>
-                <td class="">129.26</td>
-            </tr>
-            <tr>
-                <td>llama3:8b</td>
-                <td class="">66.67</td>
-                <td class="">79.03</td>
-            </tr>
-            <tr>
-                <td>qwen3:14b</td>
-                <td class="">66.67</td>
-                <td class="">32.29</td>
-            </tr>
-            <tr>
-                <td>qwen3:8b</td>
-                <td class="">100.00</td>
-                <td class="">79.00</td>
-            </tr>
+            <tr><td>qwen3:14b</td><td>MMLU-Pro (test)</td><td>77.78</td><td>45.45</td><td>1.77</td><td>63.61</td><td>85.54</td><td>17.616263</td></tr>
+<tr><td>hf.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF:IQ2_S</td><td>MMLU-Pro (test)</td><td>66.67</td><td>127.37</td><td>1.44</td><td>64.06</td><td>64.59</td><td>6.259563</td></tr>
+<tr><td>qwen3:8b</td><td>MMLU-Pro (test)</td><td>66.67</td><td>75.55</td><td>1.41</td><td>65.99</td><td>79.95</td><td>14.082057</td></tr>
         </tbody>
     </table>
-</body>
+</div>
+
+    </body>
 </html>

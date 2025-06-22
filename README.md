@@ -2,15 +2,26 @@
 
 A flexible and extensible Python framework for benchmarking the performance, accuracy, and resource consumption of local language models running via the Ollama API.
 
-This framework allows you to easily evaluate multiple models against various benchmarks, track performance metrics, and compare results in multiple formats.
+This framework allows you to easily evaluate multiple models against various benchmarks on **local GPUs**, track performance metrics, and compare results in multiple formats.
 
 ## Key Features
 
-- **Ollama Integration**: Directly connects to your local Ollama instance.
-- **External Configuration**: Easily configure models, benchmarks, and reporters via a central `config.yaml` file.
-- **Command-Line Interface**: Override configurations and run specific experiments directly from the CLI.
-- **Automatic Discovery**: New benchmarks and reporters are automatically discovered—just drop them in the right directory.
+- **Ollama Integration**: Directly connects to any local Ollama instance to run evaluations on all available models.
+- **Extensive Resource Monitoring**: Captures detailed, per-model performance data, including:
+
+  - Average CPU and RAM Utilization (%)
+  - Average GPU Utilization and VRAM Usage (%) for NVIDIA GPUs
+  - Total GPU Energy Consumption (in Watt-hours)
+
+- **External & Centralized Configuration**: Easily configure models, benchmarks, and reporters via a central `config.yaml` file.
+- **Command-Line Interface**: Override configurations (like the list of models to test) directly from the command line for quick experiments and scripting.
+- **Automatic Module Discovery**: Add new benchmarks or reporters simply by dropping a file into the correct directory. No code changes are needed in the main application.
 - **Modular Benchmarks**: Add new benchmarks by inheriting from a simple base class.
+- **Deterministic & Reproducible Results**: Control model generation with parameters like temperature and seed to ensure consistent and reproducible outputs.
+- **Advanced Logging** :
+  - Clean, informative console output for high-level progress.
+  - Verbose DEBUG level logs saved to evaluation.log for detailed troubleshooting.
+  - Automatic log rotation to prevent log files from growing indefinitely
 - **Resource Monitoring**: Tracks average CPU, RAM, and GPU utilization for each model's evaluation run.
 - **Energy Tracking**: Measures total GPU energy consumption (in Watt-hours) for NVIDIA GPUs.
 - **Multiple Reporters**: Get results as a console table and a cumulative HTML report out-of-the-box.

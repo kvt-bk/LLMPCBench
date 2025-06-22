@@ -3,13 +3,11 @@
 # -----------------------------------------------------------------------------
 
 # List of Ollama model tags to evaluate.
-# Example: ["llama3:8b", "qwen2:7b"]
+# Example: ["llama3:8b", "qwen2:7b"] - "deepseek-r1:8b" - "llama3:8b"
 models_to_evaluate:
   - "qwen3:14b"
   - "hf.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF:IQ2_S"
-  - "deepseek-r1:8b"
   - "qwen3:8b"
-  - "llama3:8b"
 
 # --- Model Generation Options ---
 # These parameters control the LLM's generation process for consistency.
