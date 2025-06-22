@@ -7,13 +7,11 @@ import argparse
 import importlib.util
 import re
 
-
 from evaluator import run_evaluation
 from ollama_client import check_ollama_connection
 from benchmarks.base_benchmark import BaseBenchmark
 from reporters.base_reporter import BaseReporter
 from logging.handlers import RotatingFileHandler
-
 
 
 def setup_logging():
@@ -48,7 +46,7 @@ def setup_logging():
     root_logger.addHandler(console_handler)
 
 def load_modules_from_path(path, base_class):
-    """Dynamically loads modules from a path and finds classes inheriting from a base class."""
+    """Dynamically loads modules from path and finds classes inheriting from a base class."""
     loaded_classes = {}
     for filename in os.listdir(path):
         if filename.endswith('.py') and not filename.startswith('__'):
@@ -94,7 +92,6 @@ def main():
     for name, params in config.get('benchmarks', {}).items():
         if params.get('enabled') and name in available_benchmarks:
             cls = available_benchmarks[name]
-            # Pass only the relevant params to the constructor
             instance_params = {k: v for k, v in params.items() if k != 'enabled'}
             benchmarks_to_run.append(cls(**instance_params))
             logging.info(f"Loaded benchmark: {name}")

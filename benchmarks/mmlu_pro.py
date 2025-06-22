@@ -117,7 +117,7 @@ Now, solve the following question:
                 else:
                     logger.info(f"No percentage Limit set, Loading all {num_questions_total} questions for subject '{subject_name}'.")
                     percentage_per_subject = 100.0
-                # <<< END: Updated logic >>>
+                
 
                 logging.debug(f"Processing {len(current_subject_items_to_load)} questions for subject '{subject_name}'...")
                 for item_idx, item in enumerate(current_subject_items_to_load):
@@ -262,10 +262,6 @@ Now, solve the following question:
     def evaluate(self, model_response: str, question_data: dict) -> (float | None):
         extracted_choice = self._extract_choice(model_response)
         correct_answer = question_data.get("correct_answer_char")
-
-        # Minimal debug for incorrect/failed extractions if needed
-        # if extracted_choice != correct_answer or correct_answer == "INVALID_ANSWER":
-        #     logging.info(f"Debug Eval: ID={question_data['id']}, Expected='{correct_answer}', Got='{extracted_choice}', Response='{model_response[:70]}...'")
         logging.info(f"Evaluating question {question_data['id']}: Expected '{correct_answer}', Got '{extracted_choice}'")
         if correct_answer == "INVALID_ANSWER": return 0.0
         if extracted_choice is None: return 0.0

@@ -1,9 +1,9 @@
 import pytest
-from benchmarks.mmlu_pro import MMLUProAdapter
+from benchmarks.mmlu_pro import MMLUPro
 
 # We need an instance to test the private method
 # In a real scenario, you might initialize it with minimal/mock data
-adapter = MMLUProAdapter()
+adapter = MMLUPro()
 
 @pytest.mark.parametrize("response, expected", [
     ('Some thinking... <think>I will choose B.</think> The final answer is {"Answer": "B"}.', 'B'),

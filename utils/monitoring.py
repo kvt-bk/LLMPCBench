@@ -80,7 +80,8 @@ class SystemMonitor:
 
                     pynvml.nvmlShutdown()
                 except Exception:
-                    pass # Fail silently if something goes wrong during sampling
+                    logging.error("Error sampling GPU metrics", exc_info=True)
+                    pass 
             
             snapshot.update(gpu_stats)
             self.results.append(snapshot)
@@ -89,7 +90,7 @@ class SystemMonitor:
     def start(self):
         """Starts the monitoring thread."""
         if self._thread is not None:
-            return # Already started
+            return 
         self.is_running = True
         self.results = []
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)

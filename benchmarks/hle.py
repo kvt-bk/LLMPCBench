@@ -4,9 +4,7 @@ from benchmarks.base_benchmark import BaseBenchmark
 class HLEAdapter(BaseBenchmark):
     def __init__(self):
         super().__init__("Holistic Language Evaluation (HLE)")
-        # TODO: Define what HLE means for your project.
-        # This could be a composite of several smaller tasks (reasoning, summarization, etc.)
-        # or an interface to a benchmark like a simplified HELM subset.
+        
         print(f"NOTICE: {self.name} adapter is a stub. Define your HLE tasks and evaluation metrics.")
         self.questions = [
             {

@@ -14,7 +14,7 @@ def check_ollama_connection():
         logger.info("Ollama API connection successful.")
         return True
     except requests.exceptions.RequestException as e:
-        logger.error(f"Ollama API is not reachable at http://localhost:11434. Please ensure Ollama is running.")
+        logger.error(f"Ollama API is not reachable at http://localhost:11434. Please ensure Ollama is running. If you are using a different port, please update the OLLAMA_API_URL variable in olalma_client.py")
         logger.error(f"Error details: {e}")
         return False
 
@@ -35,13 +35,13 @@ def get_ollama_response(model_name: str, prompt: str, options: dict = {}):
         payload = {
             "model": model_name,
             "prompt": prompt,
-            "stream": False,  # Set to False to get the full response at once
-            #"format": "json",  # Request JSON response
+            "stream": False,  
+            #"format": "json",  # Request JSON response. This is confusing some models, so not using it for now.
             "options": options,
             "system": "You are an expert AI assistant that excels at following user instructions to answer questions accurately."
 
         }
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=300) # Increased timeout
+        response = requests.post(OLLAMA_API_URL, json=payload, timeout=300) 
         response.raise_for_status()  # Raise an exception for HTTP errors
         logger.debug(f"Ollama API Response: {response.text}")
         response_data = response.json()

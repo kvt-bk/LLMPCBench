@@ -1,4 +1,3 @@
-# ollama_eval_project/evaluator.py
 import time
 import logging
 from ollama_client import get_ollama_response
@@ -15,6 +14,7 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
     Args:
         models_to_test (list[str]): A list of Ollama model names.
         benchmarks_to_run (list[BaseBenchmark]): A list of benchmark objects.
+        model_options (dict) : Additional options for the models, such as temperature, max tokens, etc.
 
     Returns:
         list: A list of dictionaries, where each dictionary contains
@@ -35,11 +35,11 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
         logger.info(f"Running Benchmark: {benchmark_name}...")
         questions = benchmark.get_questions()
         if not questions:
-            logger.warning(f"    No questions found for benchmark {benchmark_name}. Skipping.")
+            logger.warning(f"No questions found for benchmark {benchmark_name}. Skipping.")
             continue
         for model_name in models_to_test:
             logger.info(f"\n--- Evaluating Model: {model_name} on {benchmark_name} ---")
-            # <<< START monitor >>>
+
             monitor = SystemMonitor(interval=1)
             monitor.start()
             
@@ -53,7 +53,7 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
                 prompt = q_data.get("prompt")
                 if not prompt:
                     logger.warning(f"Question {i+1} has no prompt. Skipping.")
-                    num_questions -=1 # Adjust count of valid questions
+                    num_questions -=1 
                     continue
 
                 logger.debug(f"Querying model for question {i+1}/{len(questions)}...")
@@ -62,9 +62,7 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
                 logger.debug(f"Response received for question {response_text}.")
 
                 if error:
-                    logger.error(f"      Error getting response for question {q_data.get('id', i+1)}: {error}")
-                    # Optionally decide if this question should count as 0 or be skipped for scoring
-                    # For now, let's skip it from score calculation if there's an error fetching response
+                    logger.error(f"Error getting response for question {q_data.get('id', i+1)}: {error}")
                     num_questions -=1 
                     continue
                 
@@ -79,7 +77,7 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
                     logger.debug(f"Question {q_data.get('id', i+1)} - Score: {question_score:.2f}" + (f", TPS: {tps:.2f}" if tps else "")+"\n")
                 else:
                     logger.warning(f"Question {q_data.get('id', i+1)} - Could not be evaluated.")
-                    # num_questions -=1 # If unevaluable questions shouldn't count towards the average
+                    
 
             monitoring_results = monitor.stop() # End monitoring
             avg_score_percent = (total_score / successful_evals) * 100 if successful_evals > 0 else 0.0
@@ -109,6 +107,6 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
                      logger.info(f"   GPU Util: {monitoring_results.get('avg_gpu_util_percent', 0):.2f}% | GPU Mem: {monitoring_results.get('avg_gpu_mem_percent', 0):.2f}%")
                      logger.info(f"   Total GPU Energy: {monitoring_results.get('total_gpu_energy_wh', 0):.6f} Wh")
 
-            time.sleep(5) # Small delay between benchmarks
+            time.sleep(5) # delay to avoid overwhelming the server
 
     return all_results
