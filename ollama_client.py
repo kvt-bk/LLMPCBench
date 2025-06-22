@@ -18,7 +18,7 @@ def check_ollama_connection():
         logger.error(f"Error details: {e}")
         return False
 
-def get_ollama_response(model_name: str, prompt: str):
+def get_ollama_response(model_name: str, prompt: str, options: dict = {}):
     """
     Sends a prompt to the Ollama API and gets a response.
 
@@ -36,14 +36,16 @@ def get_ollama_response(model_name: str, prompt: str):
             "model": model_name,
             "prompt": prompt,
             "stream": False,  # Set to False to get the full response at once
-            "format": "json",  # Request JSON response
-            "system": "you are a helpful assistant. You are given a multiple choice questions (with answers). Think step by step and then finish your answer with The answer is (X) where X is the correct letter choice."
+            #"format": "json",  # Request JSON response
+            "options": options,
+            "system": "You are an expert AI assistant that excels at following user instructions to answer questions accurately."
+
         }
         response = requests.post(OLLAMA_API_URL, json=payload, timeout=300) # Increased timeout
         response.raise_for_status()  # Raise an exception for HTTP errors
         logger.debug(f"Ollama API Response: {response.text}")
         response_data = response.json()
-        generated_text = response_data.get("response", "").strip()
+        generated_text = response_data.get("response", "{}").strip()
 
         # Calculate tokens per second
         # eval_count = number of tokens in the response

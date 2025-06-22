@@ -38,19 +38,39 @@ class MMLUPro(BaseBenchmark):
 
     def _format_prompt(self, subject: str, question_text: str, options: dict) -> str:
         """
-        Formats a zero-shot prompt for an MMLU-Pro question.
-        `options` is a dict like {'A': 'text', 'B': 'text', ...}
+        Formats a one-shot prompt to provide a clear example for the model.}
         """
+        # --- Part 1: The One-Shot Example ---
+        # This hardcoded example shows the model exactly what is expected.
+        one_shot_example = """\
+You will be presented with a multiple-choice question. Your task is to respond with a single JSON object containing the letter of the correct answer.
+
+Here is an example:
+
+Question: What is the capital of France?
+A. London
+B. Berlin
+C. Paris
+D. Madrid
+Answer: {"Answer": "C"}
+
+---
+Now, solve the following question:
+"""
+        # --- Part 2: The Actual Question for the Model to Solve ---
         subject_formatted = subject.replace("_", " ").title() # MMLU-Pro subjects often use underscores
-        prompt = f"The following is a multiple choice question about {subject_formatted}.\n\n"
-        prompt += f"Question: {question_text}\n"
+        prompt = f"Question about {subject_formatted}: {question_text}\n"
+       
         for i in range(10): # Supports A-J options
             option_letter = chr(ord('A') + i)
             if option_letter in options and options[option_letter] is not None:
                 prompt += f"{option_letter}. {options[option_letter]}\n"
-        prompt += "Provide your final answer in JSON format as {\"Answer\": \"SELECTED_LETTER\"}, where SELECTED_LETTER is the letter of your chosen option."
+        # --- Part 3: A "Priming" Word ---
+        # end the prompt with "Answer:" to nudge the model to provide its response.
+        prompt += "Answer:"
         
-        return prompt
+        
+        return f"{one_shot_example}\n{prompt.strip()}"
 
     def _load_data(self):
         loaded_questions = []
@@ -208,7 +228,11 @@ class MMLUPro(BaseBenchmark):
                         if key.lower() == "answer":
                             if isinstance(value, str) and len(value) == 1 and 'A' <= value.upper() <= 'J':
                                 return value.upper()
-                            break # Found the key, no need to check others
+                            else:
+                                logger.warning(f"Found answer key, but value '{value}' is not a valid choice.")
+                                return None
+                    #logger.warning(f"JSON response did not contain an 'Answer' key. Response: {parsed_json}")
+                    #return None
         except (json.JSONDecodeError, Exception):
             # If JSON parsing fails, pass silently to the next fallback method.
             logger.debug("Full JSON parsing failed, attempting fallback methods.Attempted reponse: {processed_response}")

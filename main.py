@@ -12,6 +12,7 @@ from evaluator import run_evaluation
 from ollama_client import check_ollama_connection
 from benchmarks.base_benchmark import BaseBenchmark
 from reporters.base_reporter import BaseReporter
+from logging.handlers import RotatingFileHandler
 
 
 
@@ -22,10 +23,18 @@ def setup_logging():
         logging.getLogger().handlers.clear()
 
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)  
+    root_logger.setLevel(logging.DEBUG)
 
-    # Create a file handler to write logs to a file
-    file_handler = logging.FileHandler("evaluation.log", mode='w',encoding='utf-8')
+    # This will append to the log and rotate it when it reaches 1MB, keeping 5 backups.
+    log_file = "evaluation.log"
+    max_bytes = 1 * 1024 * 1024  # 1 MB
+    backup_count = 5
+    file_handler = RotatingFileHandler(
+        log_file,
+        maxBytes=max_bytes,
+        backupCount=backup_count,
+        encoding='utf-8'
+    )  
     file_handler.setLevel(logging.DEBUG)  # Log everything to the file
     file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(file_formatter)
@@ -72,8 +81,9 @@ def main():
         logging.error(f"Configuration file not found at {args.config}")
         sys.exit(1)
 
-    # --- Load Models ---
+    # --- Load Models and Options---
     models_to_evaluate = args.models if args.models else config.get('models_to_evaluate', [])
+    model_options = config.get('model_options', {})
     if not models_to_evaluate:
         logging.error("No models specified in config or via CLI. Exiting.")
         sys.exit(1)
@@ -100,7 +110,7 @@ def main():
     
     # --- Run Evaluation ---
     logging.info(f"Starting evaluation for models: {', '.join(models_to_evaluate)}")
-    results = run_evaluation(models_to_evaluate, benchmarks_to_run)
+    results = run_evaluation(models_to_evaluate, benchmarks_to_run, model_options)
 
 
     # Present the results

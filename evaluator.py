@@ -8,7 +8,7 @@ from utils.monitoring import SystemMonitor
 
 logger = logging.getLogger(__name__)
 
-def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchmark]):
+def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchmark], model_options: dict ):
     """
     Runs the specified benchmarks on the specified Ollama models.
 
@@ -58,7 +58,7 @@ def run_evaluation(models_to_test: list[str], benchmarks_to_run: list[BaseBenchm
 
                 logger.debug(f"Querying model for question {i+1}/{len(questions)}...")
                 logger.debug("Prompt : "+prompt)
-                response_text, tps, error = get_ollama_response(model_name, prompt)
+                response_text, tps, error = get_ollama_response(model_name, prompt, model_options)
                 logger.debug(f"Response received for question {response_text}.")
 
                 if error:
