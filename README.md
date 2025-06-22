@@ -40,8 +40,8 @@ This framework allows you to easily evaluate multiple models against various ben
 1.  **Clone the repository:**
 
     ```bash
-    git clone <your-repo-url>
-    cd <your-repo-directory>
+    git clone https://github.com/kvt-bk/LLMPCBench.git
+    cd LLMPCBench
     ```
 
 2.  **Create a virtual environment (recommended):**
